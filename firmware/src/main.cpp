@@ -1,4 +1,5 @@
 #include <Arduino.h>
+#include <AudioLogger.h>
 #include <SD.h>
 #include <SPI.h>
 #include <Wire.h>
@@ -57,9 +58,9 @@ void setup() {
     delay(100);
     Serial.println();
     Serial.println("CataBox v1");
+    audioLogger = &Serial;
 
     pinMode(kLedPin, OUTPUT);
-    Wire.begin(21, 22);
     SPI.begin(kSdSckPin, kSdMisoPin, kSdMosiPin, kSdCsPin);
 
     sdReady = SD.begin(kSdCsPin, SPI, 4000000);
@@ -95,6 +96,8 @@ void loop() {
         return;
     }
 
+    app.tick(now);
+
     if (now - lastPollMs >= catabox::kPollMs) {
         lastPollMs = now;
 
@@ -118,7 +121,6 @@ void loop() {
         app.onRestartButton(now);
     }
 
-    app.tick(now);
     updateLed(now);
     delay(1);
 }

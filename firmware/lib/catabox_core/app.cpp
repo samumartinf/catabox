@@ -70,12 +70,16 @@ void App::onPauseButton(uint32_t nowMs) {
 }
 
 void App::onRestartButton(uint32_t nowMs) {
-    if (!tagPresent_ || !loaded_[0] || latched(loaded_)) {
+    if (!tagPresent_ || !loaded_[0]) {
         return;
     }
-    bookmarks_.clear(loaded_);
+    finished_[0] = '\0';
+    failed_[0] = '\0';
     userPaused_ = false;
     playAt(0, nowMs);
+    if (playing_) {
+        bookmarks_.clear(loaded_);
+    }
 }
 
 void App::tick(uint32_t nowMs) {

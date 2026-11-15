@@ -18,8 +18,12 @@ public:
     uint32_t fileSize(const char* path) override;
 
 private:
-    AudioOutputI2S output_;
+    // 16 DMA buffers of 128 frames: ~46 ms of audio at 44.1 kHz, enough to
+    // cover a blocking NFC poll without underrunning.
+    AudioOutputI2S output_{0, AudioOutputI2S::EXTERNAL_I2S, 16};
     AudioGeneratorMP3* generator_ = nullptr;
     AudioFileSourceSD* source_ = nullptr;
+    uint32_t openedSize_ = 0;
+    uint32_t lastPos_ = 0;
     bool atEnd_ = false;
 };

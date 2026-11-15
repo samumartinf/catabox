@@ -30,7 +30,7 @@ uint32_t resumePosition(uint32_t bookmark, uint32_t fileSize) {
     if (fileSize == 0 || bookmark < kResumeMinBytes) {
         return 0;
     }
-    if (bookmark + kResumeEndMargin >= fileSize) {
+    if (fileSize <= kResumeEndMargin || bookmark >= fileSize - kResumeEndMargin) {
         return 0;
     }
     return bookmark;

@@ -2,7 +2,10 @@
 
 #include <SD.h>
 
+#include <cstdio>
+
 #include "config.h"
+#include "media.h"
 
 ArduinoPlayer::ArduinoPlayer() {
     output_.SetPinout(27, 26, 25);
@@ -12,6 +15,8 @@ ArduinoPlayer::ArduinoPlayer() {
 catabox::PlayResult ArduinoPlayer::play(const char* path, uint32_t startByte) {
     stop();
     atEnd_ = false;
+    openedSize_ = 0;
+    lastPos_ = startByte;
 
     source_ = new AudioFileSourceSD(path);
     if (!source_->isOpen()) {
@@ -20,8 +25,22 @@ catabox::PlayResult ArduinoPlayer::play(const char* path, uint32_t startByte) {
         return catabox::PlayResult::FileMissing;
     }
 
-    if (startByte > 0) {
-        source_->seek(startByte, SEEK_SET);
+    openedSize_ = source_->getSize();
+    if (openedSize_ == 0) {
+        stop();
+        return catabox::PlayResult::Error;
+    }
+
+    uint8_t header[3] = {};
+    const uint32_t got = source_->read(header, sizeof(header));
+    if (got != sizeof(header) || !catabox::looksLikeMp3(header, sizeof(header))) {
+        stop();
+        return catabox::PlayResult::Error;
+    }
+
+    if (!source_->seek(static_cast<int32_t>(startByte), SEEK_SET)) {
+        stop();
+        return catabox::PlayResult::Error;
     }
 
     generator_ = new AudioGeneratorMP3();
@@ -49,19 +68,27 @@ bool ArduinoPlayer::service() {
     if (!generator_ || !generator_->isRunning()) {
         return false;
     }
+
     const bool running = generator_->loop();
-    if (!running) {
-        atEnd_ = position() + 4096 >= size();
+    if (running) {
+        if (source_ && source_->isOpen()) {
+            lastPos_ = source_->getPos();
+        }
+    } else {
+        atEnd_ = catabox::reachedEnd(position(), openedSize_, source_ && source_->isOpen());
     }
     return running;
 }
 
 uint32_t ArduinoPlayer::position() const {
-    return source_ ? source_->getPos() : 0;
+    if (source_ && source_->isOpen()) {
+        return source_->getPos();
+    }
+    return lastPos_;
 }
 
 uint32_t ArduinoPlayer::size() const {
-    return source_ ? source_->getSize() : 0;
+    return openedSize_;
 }
 
 bool ArduinoPlayer::atEnd() const {

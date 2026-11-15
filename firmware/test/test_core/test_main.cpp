@@ -5,6 +5,7 @@
 #include <string>
 
 #include "app.h"
+#include "media.h"
 #include "uid.h"
 
 void setUp(void) {}
@@ -43,6 +44,34 @@ void test_resume_position_rules() {
     TEST_ASSERT_EQUAL_UINT32(50000, catabox::resumePosition(50000, 100000));
     TEST_ASSERT_EQUAL_UINT32(0, catabox::resumePosition(95000, 100000));
     TEST_ASSERT_EQUAL_UINT32(0, catabox::resumePosition(50000, 0));
+}
+
+void test_resume_position_boundaries_and_overflow() {
+    TEST_ASSERT_EQUAL_UINT32(0, catabox::resumePosition(8191, 100000));
+    TEST_ASSERT_EQUAL_UINT32(0, catabox::resumePosition(8192, 16384));
+    TEST_ASSERT_EQUAL_UINT32(8193, catabox::resumePosition(8193, 20000));
+    TEST_ASSERT_EQUAL_UINT32(0, catabox::resumePosition(0xFFFFFFFFu, 100000));
+}
+
+void test_mp3_signatures() {
+    const uint8_t id3[] = {'I', 'D', '3'};
+    const uint8_t frame[] = {0xFF, 0xFB, 0x90};
+    const uint8_t wav[] = {'R', 'I', 'F', 'F'};
+    const uint8_t junk[] = {0x00, 0x01, 0x02};
+    TEST_ASSERT_TRUE(catabox::looksLikeMp3(id3, 3));
+    TEST_ASSERT_TRUE(catabox::looksLikeMp3(frame, 3));
+    TEST_ASSERT_FALSE(catabox::looksLikeMp3(wav, 4));
+    TEST_ASSERT_FALSE(catabox::looksLikeMp3(junk, 3));
+    TEST_ASSERT_FALSE(catabox::looksLikeMp3(junk, 0));
+}
+
+void test_reached_end_classification() {
+    TEST_ASSERT_TRUE(catabox::reachedEnd(96000, 100000, true));
+    TEST_ASSERT_FALSE(catabox::reachedEnd(90000, 100000, true));
+    TEST_ASSERT_FALSE(catabox::reachedEnd(0, 0, true));
+    TEST_ASSERT_FALSE(catabox::reachedEnd(100000, 100000, false));
+    TEST_ASSERT_FALSE(catabox::reachedEnd(100001, 100000, true));
+    TEST_ASSERT_TRUE(catabox::reachedEnd(100000, 100000, true));
 }
 
 class FakePlayer : public catabox::IPlayer {
@@ -308,6 +337,75 @@ void test_short_tag_bounce_does_not_swap() {
     TEST_ASSERT_EQUAL_INT(1, player.playCalls);
 }
 
+void test_restart_after_finish_replays() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 100000;
+    player.endFlag = true;
+    player.serviceResult = false;
+    app.tick(100);
+    app.onRestartButton(200);
+    TEST_ASSERT_EQUAL_INT(2, player.playCalls);
+    TEST_ASSERT_EQUAL_UINT32(0, player.lastStart);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+}
+
+void test_restart_after_decode_error_rewinds() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 30000;
+    player.endFlag = false;
+    player.serviceResult = false;
+    app.tick(100);
+    app.onRestartButton(200);
+    TEST_ASSERT_EQUAL_INT(2, player.playCalls);
+    TEST_ASSERT_EQUAL_UINT32(0, player.lastStart);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+}
+
+void test_restart_after_missing_file_retries() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    player.nextResult = catabox::PlayResult::FileMissing;
+    app.onScan(kUid, 0);
+    player.nextResult = catabox::PlayResult::Ok;
+    app.onRestartButton(100);
+    TEST_ASSERT_EQUAL_INT(2, player.playCalls);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+}
+
+void test_pause_button_after_finish_does_nothing() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 100000;
+    player.endFlag = true;
+    player.serviceResult = false;
+    app.tick(100);
+    app.onPauseButton(200);
+    TEST_ASSERT_FALSE(app.userPaused());
+    TEST_ASSERT_EQUAL_INT(1, player.playCalls);
+}
+
+void test_alternating_tags_do_not_flap() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    app.onScan("DEADBEEF", 100);
+    app.onScan(kUid, 200);
+    app.onScan("DEADBEEF", 300);
+    app.onScan(kUid, 400);
+    TEST_ASSERT_EQUAL_STRING(kUid, app.loadedUid());
+    TEST_ASSERT_EQUAL_INT(1, player.playCalls);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_format_7_byte_uid);
@@ -315,6 +413,9 @@ int main(int, char**) {
     RUN_TEST(test_reject_other_uid_lengths);
     RUN_TEST(test_story_path);
     RUN_TEST(test_resume_position_rules);
+    RUN_TEST(test_resume_position_boundaries_and_overflow);
+    RUN_TEST(test_mp3_signatures);
+    RUN_TEST(test_reached_end_classification);
     RUN_TEST(test_tag_plays_story_from_start);
     RUN_TEST(test_repeated_scans_do_not_restart);
     RUN_TEST(test_short_dropout_is_ignored);
@@ -332,5 +433,10 @@ int main(int, char**) {
     RUN_TEST(test_audio_open_error_is_handled_and_latched);
     RUN_TEST(test_button_without_tag_does_nothing);
     RUN_TEST(test_short_tag_bounce_does_not_swap);
+    RUN_TEST(test_restart_after_finish_replays);
+    RUN_TEST(test_restart_after_decode_error_rewinds);
+    RUN_TEST(test_restart_after_missing_file_retries);
+    RUN_TEST(test_pause_button_after_finish_does_nothing);
+    RUN_TEST(test_alternating_tags_do_not_flap);
     return UNITY_END();
 }

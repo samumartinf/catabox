@@ -49,8 +49,9 @@ The state machine and helpers are tested without hardware:
 pio test -e native
 ```
 
-22 tests cover UID formatting, path building, resume rules, pause/lift/resume,
-button behaviour, tag swaps, restart, and finish/error latches.
+30 tests cover UID formatting, path building, resume rules, MP3/end
+classification, pause/lift/resume, button behaviour, tag swaps, restart after
+finish/error, and finish/error latches.
 
 ## SD card layout
 
@@ -91,12 +92,14 @@ ffmpeg -i story.m4a -codec:a libmp3lame -b:a 128k -ar 44100 -ac 1 \
 | Lift figurine | Pauses within ~1 s and saves the spot |
 | Replace same figurine | Resumes from the saved spot |
 | Pause button | Pauses/resumes; a manual pause survives lifting the figurine |
-| Restart button | Jumps to 0:00 and plays (figurine must be on the box) |
+| Restart button | Jumps to 0:00 and plays (figurine on the box; works after finish or error) |
 | Power on with figurine on box | Starts that story after 1 s |
 
-A finished story does not replay while its figurine stays on the box; lift and
-replace it to hear it again. A missing or broken file is latched the same way, so
-the box does not retry in a loop.
+A finished story does not replay automatically while its figurine stays on the
+box; press restart or lift and replace it. A missing or broken file is latched
+the same way, so the box does not retry in a loop; press restart to retry it from
+0:00. A file that is empty, not an MP3, or unreadable is reported as
+`audio open failed` instead of looking like a finished story.
 
 ## Behaviour notes
 
@@ -119,6 +122,7 @@ the box does not retry in a loop.
 | No sound | MAX98357A VIN on 5 V, BCLK 27 / LRC 26 / DIN 25, speaker on amp output |
 | Sound stutters | use a Class 10 card, 128 kbps CBR MP3, shorter cables |
 | Wrong/no story | filename must match the UID exactly, uppercase, `.mp3` |
+| `audio open failed` | file is empty, not really an MP3, or unreadable; re-encode it |
 | Pauses by itself | NFC dropouts through thick PLA or magnets; move the tag closer to the reader |
 
 ## Layout

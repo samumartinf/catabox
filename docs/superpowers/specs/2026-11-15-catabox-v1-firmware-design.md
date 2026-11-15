@@ -69,8 +69,10 @@ figurine.
 
 Two latches prevent retry storms while a tag sits on the box:
 
-- `finishedUID` — track ended; ignore until that tag is removed.
-- `failedUID` — file missing or decode error; ignore until tag is removed.
+- `finishedUID` — track ended; ignore automatic retries until that tag is removed
+  or the restart button is pressed.
+- `failedUID` — file missing, empty/not-MP3, or decode error; ignore automatic
+  retries until tag removal or restart.
 
 Both latches clear when the tag becomes absent.
 
@@ -100,19 +102,20 @@ UIDs of 4 or 7 bytes are accepted. Anything else is logged and ignored.
 | Tag present | no story loaded, no latch for that UID, file exists | open file, seek to bookmark, clear `userPaused`, play |
 | Tag present | file missing | log, blink 3×, set `failedUID` |
 | Tag absent | story loaded | pause, save bookmark |
-| Same tag returns | story loaded, not user-paused | resume (no re-seek) |
+| Same tag returns | story loaded, not user-paused | reopen at the saved byte and resume |
 | Same tag returns | story loaded, user-paused | stay paused |
 | Different tag placed | other tag absent | save bookmark, stop old, load new |
 | Different tag placed | loaded tag still present | ignore (current wins) |
 | Pause button | story loaded and tag present | toggle `userPaused`; save bookmark when pausing |
 | Pause button | no tag present | ignore |
-| Restart button | story loaded and tag present | seek 0, clear bookmark, `userPaused = false`, play |
+| Restart button | story loaded and tag present, including after finish/error | clear latches, play from 0, clear bookmark on success, `userPaused = false` |
 | Restart button | no tag present | ignore |
 | Track ends | — | stop, clear bookmark, set `finishedUID` |
 | Decode error | — | stop, keep bookmark, set `failedUID` |
 
 Restart requires the figurine on the box. A toddler cannot make the box play to
-an empty room.
+an empty room. Restart is also the recovery path for a finished story or a
+broken file: it clears the latch and retries from 0:00.
 
 ### 5.4 Bookmarks
 
@@ -176,8 +179,9 @@ cleared at boot.
 | Restart button | GPIO 33 | button → GND |
 | Status LED | GPIO 2 | onboard LED (error/status only) |
 
-Deliberately avoided: GPIO 6–11 (flash), 34–39 (input-only), and strapping pins
-other than 2 (LED). PN532 is I2C, so it does not share the SD SPI bus.
+Deliberately avoided: GPIO 6–11 (flash) and 34–39 (input-only). GPIO 2 (LED) and
+GPIO 5 (SD CS) are strapping pins, but both idle high at boot; the SD module’s CS
+pull-up keeps GPIO 5 high. PN532 is I2C, so it does not share the SD SPI bus.
 
 Power: all modules 3.3 V logic; MAX98357A VIN on 5 V; common ground; bulk
 capacitor across amp VIN/GND.
@@ -189,6 +193,7 @@ firmware/
   platformio.ini          # env:esp32dev, Arduino framework, lib deps
   src/
     config.h              # pins, volume, timings, paths
+    media.h/.cpp          # MP3 signature + clean-end classification
     main.cpp              # setup/loop + state machine
     nfc.h/.cpp            # PN532 init, UID read, multi-tag selection, presence
     player.h/.cpp         # ESP32-audioI2S wrapper, seek, end detection
@@ -213,8 +218,9 @@ interfaces so the transition logic can be host-tested without a board.
 |---|---|
 | SD mount fails | serial message + slow LED blink; retry every 5 s |
 | Tag read fails / no tag | treated as absent; no error spam |
-| MP3 missing | serial + 3 blinks; `failedUID` until tag replaced |
-| MP3 decode error | stop, serial, keep bookmark, `failedUID` until tag replaced |
+| MP3 missing | serial + 3 blinks; `failedUID` until tag replaced or restart |
+| MP3 empty / not an MP3 | rejected at open, same `failedUID` path |
+| MP3 decode error | stop, serial, keep bookmark, `failedUID` until replaced or restart |
 | I2S/amp not wired | boot continues; serial warns on first playback attempt |
 
 Everything is logged at 115200 baud. No watchdog resets expected; loop is

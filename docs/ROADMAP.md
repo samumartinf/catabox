@@ -13,7 +13,7 @@ Living doc — update as we go. **Deadline: ready before the Christmas break.**
 - [x] Core state machine: tag → play, lift → pause/save, return → resume
 - [x] Pause button (sticky) and restart button (tag required)
 - [x] Per-figurine bookmarks in NVS, cleared at story end
-- [x] 22 host tests with `pio test -e native`
+- [x] 30 host tests with `pio test -e native`
 - [x] PN532 (I2C), microSD/MP3, MAX98357A adapters
 - [x] Wiring diagram and firmware README
 - [ ] Flash and verify on real hardware → Phase 2
