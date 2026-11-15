@@ -1,4 +1,10 @@
 #include <unity.h>
+
+#include <cstring>
+#include <map>
+#include <string>
+
+#include "app.h"
 #include "uid.h"
 
 void setUp(void) {}
@@ -39,6 +45,122 @@ void test_resume_position_rules() {
     TEST_ASSERT_EQUAL_UINT32(0, catabox::resumePosition(50000, 0));
 }
 
+class FakePlayer : public catabox::IPlayer {
+public:
+    std::string lastPath;
+    uint32_t lastStart = 0;
+    int playCalls = 0;
+    int stopCalls = 0;
+    uint32_t pos = 0;
+    uint32_t sz = 100000;
+    bool serviceResult = true;
+    bool endFlag = false;
+    catabox::PlayResult nextResult = catabox::PlayResult::Ok;
+
+    catabox::PlayResult play(const char* path, uint32_t start) override {
+        lastPath = path;
+        lastStart = start;
+        playCalls++;
+        pos = start;
+        endFlag = false;
+        return nextResult;
+    }
+    void stop() override { stopCalls++; }
+    bool service() override { return serviceResult; }
+    uint32_t position() const override { return pos; }
+    uint32_t size() const override { return sz; }
+    bool atEnd() const override { return endFlag; }
+    uint32_t fileSize(const char*) override { return sz; }
+};
+
+class FakeBookmarks : public catabox::IBookmarkStore {
+public:
+    std::map<std::string, uint32_t> values;
+    uint32_t load(const char* uid) override {
+        auto it = values.find(uid);
+        return it == values.end() ? 0 : it->second;
+    }
+    void save(const char* uid, uint32_t pos) override { values[uid] = pos; }
+    void clear(const char* uid) override { values.erase(uid); }
+};
+
+static const char* kUid = "04A3B2C1D4E580";
+
+void test_tag_plays_story_from_start() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    TEST_ASSERT_EQUAL_STRING("/stories/04A3B2C1D4E580.mp3", player.lastPath.c_str());
+    TEST_ASSERT_EQUAL_UINT32(0, player.lastStart);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+    TEST_ASSERT_TRUE(app.tagPresent());
+}
+
+void test_repeated_scans_do_not_restart() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    app.onScan(kUid, 100);
+    app.onScan(kUid, 200);
+    TEST_ASSERT_EQUAL_INT(1, player.playCalls);
+}
+
+void test_short_dropout_is_ignored() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    app.onScan(nullptr, 100);
+    app.onScan(kUid, 200);
+    TEST_ASSERT_EQUAL_INT(1, player.playCalls);
+    TEST_ASSERT_EQUAL_INT(0, player.stopCalls);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+}
+
+void test_lift_pauses_and_saves() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 40000;
+    app.onScan(nullptr, 600);
+    TEST_ASSERT_EQUAL_INT(1, player.stopCalls);
+    TEST_ASSERT_EQUAL_UINT32(40000, marks.values[kUid]);
+    TEST_ASSERT_FALSE(app.tagPresent());
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Paused);
+}
+
+void test_return_resumes_at_saved_position() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 40000;
+    app.onScan(nullptr, 600);
+    app.onScan(kUid, 700);
+    TEST_ASSERT_EQUAL_UINT32(40000, player.lastStart);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+}
+
+void test_user_pause_survives_lift_and_return() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 30000;
+    app.onPauseButton(100);
+    TEST_ASSERT_TRUE(app.userPaused());
+    app.onScan(nullptr, 700);
+    app.onScan(kUid, 800);
+    TEST_ASSERT_EQUAL_INT(1, player.playCalls);
+    TEST_ASSERT_TRUE(app.userPaused());
+    app.onPauseButton(900);
+    TEST_ASSERT_EQUAL_UINT32(30000, player.lastStart);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_format_7_byte_uid);
@@ -46,5 +168,11 @@ int main(int, char**) {
     RUN_TEST(test_reject_other_uid_lengths);
     RUN_TEST(test_story_path);
     RUN_TEST(test_resume_position_rules);
+    RUN_TEST(test_tag_plays_story_from_start);
+    RUN_TEST(test_repeated_scans_do_not_restart);
+    RUN_TEST(test_short_dropout_is_ignored);
+    RUN_TEST(test_lift_pauses_and_saves);
+    RUN_TEST(test_return_resumes_at_saved_position);
+    RUN_TEST(test_user_pause_survives_lift_and_return);
     return UNITY_END();
 }
