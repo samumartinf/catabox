@@ -161,6 +161,153 @@ void test_user_pause_survives_lift_and_return() {
     TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
 }
 
+void test_different_tag_while_current_still_seen_is_ignored() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    app.onScan("DEADBEEF", 100);
+    TEST_ASSERT_EQUAL_INT(1, player.playCalls);
+    TEST_ASSERT_EQUAL_STRING(kUid, app.loadedUid());
+}
+
+void test_different_tag_after_absence_swaps_story() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 25000;
+    app.onScan("DEADBEEF", 600);
+    TEST_ASSERT_EQUAL_UINT32(25000, marks.values[kUid]);
+    TEST_ASSERT_EQUAL_STRING("/stories/DEADBEEF.mp3", player.lastPath.c_str());
+    TEST_ASSERT_EQUAL_UINT32(0, player.lastStart);
+}
+
+void test_restart_needs_tag_present() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    app.onScan(nullptr, 600);
+    int calls = player.playCalls;
+    app.onRestartButton(700);
+    TEST_ASSERT_EQUAL_INT(calls, player.playCalls);
+}
+
+void test_restart_rewinds_and_clears_bookmark() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    marks.values[kUid] = 50000;
+    app.onRestartButton(100);
+    TEST_ASSERT_EQUAL_UINT32(0, player.lastStart);
+    TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(marks.values.count(kUid)));
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+}
+
+void test_finish_clears_bookmark_and_does_not_replay() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    marks.values[kUid] = 60000;
+    player.pos = 100000;
+    player.endFlag = true;
+    player.serviceResult = false;
+    app.tick(100);
+    TEST_ASSERT_EQUAL_UINT32(0, static_cast<uint32_t>(marks.values.count(kUid)));
+    int calls = player.playCalls;
+    app.onScan(kUid, 200);
+    app.tick(300);
+    app.onScan(kUid, 400);
+    TEST_ASSERT_EQUAL_INT(calls, player.playCalls);
+}
+
+void test_finished_tag_replays_after_removal() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 100000;
+    player.endFlag = true;
+    player.serviceResult = false;
+    app.tick(100);
+    app.onScan(nullptr, 700);
+    app.onScan(kUid, 800);
+    TEST_ASSERT_EQUAL_UINT32(0, player.lastStart);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Playing);
+}
+
+void test_decode_error_keeps_bookmark_and_latches() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    player.pos = 30000;
+    player.endFlag = false;
+    player.serviceResult = false;
+    app.tick(100);
+    TEST_ASSERT_EQUAL_UINT32(30000, marks.values[kUid]);
+    int calls = player.playCalls;
+    app.onScan(kUid, 200);
+    TEST_ASSERT_EQUAL_INT(calls, player.playCalls);
+}
+
+void test_missing_file_is_handled_and_retried_after_removal() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    player.nextResult = catabox::PlayResult::FileMissing;
+    app.onScan(kUid, 0);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Idle);
+    TEST_ASSERT_TRUE(app.lastError()[0] != '\0');
+    int calls = player.playCalls;
+    app.onScan(kUid, 100);
+    TEST_ASSERT_EQUAL_INT(calls, player.playCalls);
+    app.onScan(nullptr, 700);
+    player.nextResult = catabox::PlayResult::Ok;
+    app.onScan(kUid, 800);
+    TEST_ASSERT_EQUAL_INT(calls + 1, player.playCalls);
+}
+
+void test_audio_open_error_is_handled_and_latched() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    player.nextResult = catabox::PlayResult::Error;
+    app.onScan(kUid, 0);
+    TEST_ASSERT_TRUE(app.state() == catabox::AppState::Idle);
+    TEST_ASSERT_TRUE(app.lastError()[0] != '\0');
+    int calls = player.playCalls;
+    app.onScan(kUid, 100);
+    TEST_ASSERT_EQUAL_INT(calls, player.playCalls);
+    app.onScan(nullptr, 700);
+    player.nextResult = catabox::PlayResult::Ok;
+    app.onScan(kUid, 800);
+    TEST_ASSERT_EQUAL_INT(calls + 1, player.playCalls);
+}
+
+void test_button_without_tag_does_nothing() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onPauseButton(0);
+    app.onRestartButton(0);
+    TEST_ASSERT_EQUAL_INT(0, player.playCalls);
+}
+
+void test_short_tag_bounce_does_not_swap() {
+    FakePlayer player;
+    FakeBookmarks marks;
+    catabox::App app(player, marks);
+    app.onScan(kUid, 0);
+    app.onScan("DEADBEEF", 300);
+    app.onScan(kUid, 400);
+    TEST_ASSERT_EQUAL_STRING(kUid, app.loadedUid());
+    TEST_ASSERT_EQUAL_INT(1, player.playCalls);
+}
+
 int main(int, char**) {
     UNITY_BEGIN();
     RUN_TEST(test_format_7_byte_uid);
@@ -174,5 +321,16 @@ int main(int, char**) {
     RUN_TEST(test_lift_pauses_and_saves);
     RUN_TEST(test_return_resumes_at_saved_position);
     RUN_TEST(test_user_pause_survives_lift_and_return);
+    RUN_TEST(test_different_tag_while_current_still_seen_is_ignored);
+    RUN_TEST(test_different_tag_after_absence_swaps_story);
+    RUN_TEST(test_restart_needs_tag_present);
+    RUN_TEST(test_restart_rewinds_and_clears_bookmark);
+    RUN_TEST(test_finish_clears_bookmark_and_does_not_replay);
+    RUN_TEST(test_finished_tag_replays_after_removal);
+    RUN_TEST(test_decode_error_keeps_bookmark_and_latches);
+    RUN_TEST(test_missing_file_is_handled_and_retried_after_removal);
+    RUN_TEST(test_audio_open_error_is_handled_and_latched);
+    RUN_TEST(test_button_without_tag_does_nothing);
+    RUN_TEST(test_short_tag_bounce_does_not_swap);
     return UNITY_END();
 }

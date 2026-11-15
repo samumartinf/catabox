@@ -70,7 +70,12 @@ void App::onPauseButton(uint32_t nowMs) {
 }
 
 void App::onRestartButton(uint32_t nowMs) {
-    (void)nowMs;
+    if (!tagPresent_ || !loaded_[0] || latched(loaded_)) {
+        return;
+    }
+    bookmarks_.clear(loaded_);
+    userPaused_ = false;
+    playAt(0, nowMs);
 }
 
 void App::tick(uint32_t nowMs) {
@@ -79,9 +84,20 @@ void App::tick(uint32_t nowMs) {
     }
 
     if (!player_.service()) {
-        pausedPos_ = player_.position();
+        const uint32_t pos = player_.position();
+        const bool ended = player_.atEnd();
         player_.stop();
         playing_ = false;
+        pausedPos_ = pos;
+        if (ended) {
+            bookmarks_.clear(loaded_);
+            pausedPos_ = 0;
+            copyUid(finished_, loaded_);
+        } else {
+            bookmarks_.save(loaded_, pos);
+            copyUid(failed_, loaded_);
+            setError("audio decode error");
+        }
         return;
     }
 
