@@ -1,8 +1,8 @@
 # CataBox — Specification
 
 > Source of truth for scope and architecture. Change via PR so both of us see it.
-> Status: **v0.2 — pivoted to ESPuino-based build.**
-> Original from-scratch firmware plan kept at the bottom for reference.
+> Status: **v0.3 — minimal custom firmware (ADR-007).**
+> Detailed v1 design: [2026-11-15-catabox-v1-firmware-design.md](superpowers/specs/2026-11-15-catabox-v1-firmware-design.md).
 
 ## 1. Vision
 
@@ -10,98 +10,95 @@ Catalina places a figurine on the box; the box plays that character's story. Cus
 
 **Principles**
 
-1. **Kid-proof first.** No screens, few buttons, survives drops. Figurine on → play, off → pause.
-2. **Parents manage content over WiFi** — no opening the box, no SD-card removal at playtime.
-3. **Offline playback.** Audio on SD; WiFi used only for management (web UI, FTP).
-4. **Don't rebuild what exists.** Use the mature ESPuino firmware instead of writing our own.
+1. **Kid-proof first.** No screens, two buttons, survives drops. Figurine on → play, off → pause.
+2. **Offline playback.** Audio on SD; no network at playtime or at all in v1.
+3. **Small enough to understand.** Our own minimal firmware, not a config-heavy platform.
+4. **Content is ours.** Family voices, Spanish and English stories, one MP3 per figurine.
 
-## 2. Platform decision: ESPuino (ADR-005)
+## 2. Platform decision: minimal custom firmware (ADR-007)
 
-We are adopting **ESPuino** (biologist79/ESPuino, mature OSS) instead of custom firmware:
+The earlier plan adopted **ESPuino** (ADR-005) to avoid writing firmware. We are
+reversing that for v1: the scope is small (play/pause/restart plus tag lookup),
+the ESPuino codebase is large and config-driven, and we want a program we can
+debug line by line.
 
-| We get for free | Why it matters |
-|---|---|
-| Web interface (phone browser) | Assign NFC tags to audio, upload MP3s over WiFi |
-| FTP server | Bulk-load stories like a network drive |
-| Audiobook position memory | Resume exactly where the story stopped |
-| Play modes per tag | Audiobook mode is exactly our story use case |
-| Modification cards | Lock buttons (toddler!), sleep timer, night mode |
-| NeoPixel ring support | Track progress / volume / battery as kid-friendly light show |
-| Pre-built firmware | No compile needed to get started; compile only for customisation |
+What we give up: web upload, FTP, OTA, modification cards, built-in play modes.
+Stories are added by pulling the microSD card.
 
-**Hardware requirement:** the ESP32 board **must have PSRAM → ESP32-WROVER** (not plain WROOM). Check what we have on hand before ordering.
+What we keep: offline playback, per-figurine bookmarks, and a codebase that fits
+in one evening's reading.
 
-RC522 is the default RFID module; PN5180 is the optional upgrade (better range, LPCD low-power wake, can read original Tonies).
+**Consequences:** no WiFi requirement, no PSRAM requirement, no WROVER needed. A
+plain ESP32 devkit is enough. Archived ESPuino notes remain in
+[espuino-plan.md](espuino-plan.md) for reference.
 
 ## 3. Architecture
 
 ```
-┌─────────────┐     ┌───────────────────────────────┐
-│ Figurine    │     │ CataBox (ESPuino)             │
-│ 3D printed  │     │  ESP32-WROVER (PSRAM)         │
-│ + NTAG213/  │──→  │  RC522 RFID (SPI)             │
-│ 215 sticker │     │  microSD (SPI)                │
-│ + magnet    │     │  MAX98357A I2S DAC + speaker  │
-└─────────────┘     │  3× arcade buttons + KY-040   │
-                    │  NeoPixel ring                │
-                    │  USB/18650 + LiFePO4 charger  │
-                    └───────────────────────────────┘
-                            ▲ WiFi (management only)
-                    Parents: web UI upload / FTP / tag assignment
+┌─────────────┐     ┌────────────────────────────────┐
+│ Figurine    │     │ CataBox firmware (ESP32)       │
+│ 3D printed  │     │  PN532 NFC (I2C)               │
+│ + NTAG213/  │──→  │  microSD (SPI) → MP3           │
+│ 215 sticker │     │  MAX98357A I2S DAC + speaker   │
+│ + magnet    │     │  2 buttons: pause, restart     │
+└─────────────┘     │  NVS: per-tag bookmark         │
+                    └────────────────────────────────┘
 ```
 
-### Wiring (ESPuino `settings-custom.h`)
+- Place tag → look up `/stories/<UID>.mp3` → play from bookmark.
+- Lift tag → pause and save the byte position.
+- Replace tag → resume. Restart → 0:00. Pause button toggles.
+- Track end clears the bookmark; a missing/broken file is latched until the tag
+  is removed.
 
-Full pin map is in [espuino-plan.md](espuino-plan.md) (I2S, RC522 SPI, SD SPI, buttons, encoder, NeoPixel). Copy it into `src/settings-custom.h` when we compile; if using pre-built firmware pick the closest supported board config.
+No network stack is compiled in. The status LED is the only feedback beyond
+sound.
 
 ## 4. Characters & figurines
 
 - 3D printed bodies ~5 cm, hollow, magnet ring in base matching box recess, NTAG213/215 sticker inside.
-- Characters modelled on family: **Samu**, **Ale**, **Catalina** (+ cousin's picks). Animal-face box design (owl/bear/fox — decide in Phase 3); top surface flat with NFC recess + magnets.
+- Characters modelled on family: **Samu**, **Ale**, **Catalina** (+ cousin's picks). Animal-face box design (owl/bear/fox — Ale's call).
 - Any language audio we record/generate — big win for Spanish-language stories.
+- NFC read through PLA + magnets is the main physical risk; test early.
 
 ## 5. Bill of materials
 
-See [espuino-plan.md](espuino-plan.md) for the full list + UK links. **~£40–55 total.**
+See [inventory.md](inventory.md). **~£40–55 total.**
 
-**Status: buttons and some other items already ordered.** Inventory before ordering anything else — update [inventory.md](inventory.md) as items arrive.
+**Have / ordered:** arcade buttons, NFC tags, magnets.
 
-### To verify on hand / still to order
-- [ ] ESP32-WROVER **with PSRAM** (check existing boards; order WROVER if not)
-- [ ] RC522 (have? PN5180 upgrade optional)
+**Verify on hand:**
+- [ ] ESP32 devkit (PSRAM not required now)
+- [ ] PN532 NFC module (I2C)
 - [ ] MAX98357A
-- [ ] microSD module + 16GB card
+- [ ] microSD module + 16 GB card
 - [ ] Speaker (Visaton FR10 or similar)
-- [ ] NeoPixel ring
-- [ ] Rotary encoder KY-040
-- [ ] NFC tags NTAG213/215 (have some)
-- [ ] Magnets, PLA, wiring (have)
+- [ ] 5 V 2 A supply
+- [ ] PLA, wiring
+
+**Nice to have later:** NeoPixel ring, rotary encoder, battery/charger.
 
 ## 6. Risks / open questions
 
-- **PSRAM:** plain WROOM-32 boards won't run ESPuino well — inventory check is the first task.
-- **NFC through base + magnets:** detuning risk; test early.
-- **SD on SPI vs SDMMC:** ESPuino prefers SD_MMC (1-bit) where possible — fewer pins, faster.
-- **Volume cap for toddler ears:** configure max volume in web UI config.
-- **Battery choice:** LiFePO4 recommended by ESPuino community for safety.
-- **Story generation:** MVP = recorded family voices / existing MP3s. TTS/generated stories = stretch (Phase 5).
+- **NFC through base + magnets:** detuning can cut range; test with the printed base as soon as possible.
+- **PN532 mode:** must be set to I2C via its DIP switches; wiring assumes I2C.
+- **MP3 seek:** byte-offset seek resyncs on the next frame; ±2 s resume accuracy.
+- **Stacked figurines:** one tag at a time is supported; stacking may confuse the reader.
+- **Volume cap for toddler ears:** fixed gain in `config.h`, tune after listening.
+- **Battery:** deferred; v1 runs from USB 5 V.
 
 ## 7. Milestones (Christmas-break deadline)
 
-1. **Phase 0 — Spec, inventory, orders** ← current
-2. **Phase 1 — ESPuino bring-up:** flash pre-built firmware, breadboard, verify audio + NFC + web UI
-3. **Phase 2 — Wire-up & config:** real pin map, buttons/encoder/NeoPixel, tag→story assignment, modification cards
-4. **Phase 3 — Enclosure design & print:** animal-face case, figurines (2–3)
-5. **Phase 4 — Assembly & content:** solder, load stories, parent instruction sheet
+1. **Phase 0 — Spec, inventory, orders** ← inventory still open
+2. **Phase 1 — Firmware written** ✅ core, buttons, bookmarks, wiring diagram, host tests
+3. **Phase 2 — Hardware bring-up:** flash, verify SD + NFC + audio, first tag→story
+4. **Phase 3 — Enclosure & figurines:** case, 2–3 characters with tags/magnets
+5. **Phase 4 — Assembly & content:** solder, load stories, parent instructions
 6. **Phase 5 — Ship 🎁** (before Christmas break)
 
 ---
 
-# Appendix — original from-scratch plan (v0.1, superseded)
+# Appendix — superseded plans
 
-<details>
-<summary>Custom firmware approach (kept for reference)</summary>
-
-Original plan: own ESP32 firmware with modules `nfc` / `player` / `store` / `ui` / `power`; MP3-or-WAV decode decision; manifest.json per character. This is exactly the feature set ESPuino already ships — see ADR-005.
-
-</details>
+- **ESPuino (ADR-005):** mature off-the-shelf firmware with web UI/FTP. Rejected for v1 because the feature set is far larger than needed and the codebase is hard to modify. Notes: [espuino-plan.md](espuino-plan.md).
+- **Original custom-firmware sketch (v0.1):** modules `nfc` / `player` / `store` / `ui` / `power`, manifest.json per character. The v0.3 implementation is a smaller version of the same idea.

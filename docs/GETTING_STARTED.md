@@ -1,5 +1,10 @@
 # Getting Started — Samuel's Phase 1 Plan
 
+> **Superseded for v1.** We are not using ESPuino any more (ADR-007). For the
+> current build/flash/wiring steps see [firmware/README.md](../firmware/README.md)
+> and the [wiring diagram](wiring/catabox-wiring.svg). This page is kept for the
+> still-useful ESP32 basics: blink, PSRAM check, first NFC read, first sound.
+
 First hardware project in 8+ years? Welcome back. The good news: ESPuino means
 you're mostly *configuring* firmware, not writing it. The even better news:
 every step below has a cheap win you can feel the same evening.

@@ -9,15 +9,16 @@ Update as items arrive. Source of truth for what we own vs need to buy.
 | Arcade buttons (30mm) | ✅ ordered | | |
 | NFC tags NTAG213/215 | ✅ have | | |
 | Magnets (10×3mm neodymium) | ✅ have | | |
-| ESP32 boards | ❓ verify | | **Must confirm PSRAM** — WROVER required |
+| ESP32 boards | ❓ verify | | PSRAM not required for v1 (plain WROOM is fine) |
+| PN532 NFC module | ✅ have | | I2C mode; DIP switches must be set to I2C |
 
 ## To order
 
 | Item | Est. | Link (UK) |
 |---|---|---|
-| ESP32-WROVER dev board (8MB PSRAM) | ~£14 | [Amazon](https://www.amazon.co.uk/dp/B087TF2L27) — only if existing boards lack PSRAM |
+| ESP32 devkit (WROOM-32) | ~£8 | only if existing boards are unusable |
 | MAX98357A I2S DAC | ~£4 | [Amazon](https://www.amazon.co.uk/s?k=max98357a) |
-| RC522 RFID module | ~£3 | [Amazon](https://www.amazon.co.uk/dp/B0821LQ96R) (3-pack) |
+| ~~RC522~~ | — | not needed: PN532 on hand (ADR-008) |
 | microSD card module | ~£4 | [Amazon](https://www.amazon.co.uk/s?k=arduino+micro+sd+card+module) |
 | microSD 16GB Class 10 | ~£6 | [Amazon](https://www.amazon.co.uk/s?k=microsd+card+16gb+class+10) |
 | Speaker 4–8Ω 3W (Visaton FR10) | ~£10 | [Amazon](https://www.amazon.co.uk/s?k=Visaton+FR+10) |

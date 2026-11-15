@@ -1,0 +1,190 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="990" viewBox="0 0 1440 990" font-family="Helvetica, Arial, sans-serif">
+  <defs>
+    <style>
+      .panel { fill: #f8fafc; stroke: #cbd5e1; stroke-width: 1.5; rx: 14; }
+      .box { fill: #ffffff; stroke: #1e3a8a; stroke-width: 2; rx: 10; }
+      .title { font-size: 20px; font-weight: bold; fill: #0f172a; }
+      .sub { font-size: 13px; fill: #475569; }
+      .pin { font-size: 13px; fill: #1e293b; }
+      .wirelabel { font-size: 12px; fill: #334155; }
+      .note { font-size: 13px; fill: #475569; }
+      .wire { fill: none; stroke-width: 3; stroke-linecap: round; }
+      .i2s { stroke: #16a34a; }
+      .i2c { stroke: #2563eb; }
+      .spi { stroke: #7c3aed; }
+      .btn { stroke: #475569; }
+      .p5v { stroke: #dc2626; }
+      .p33 { stroke: #ea580c; }
+      .gnd { stroke: #111827; }
+      .dot { fill: #1e293b; }
+    </style>
+  </defs>
+
+  <rect width="1440" height="990" fill="#ffffff"/>
+  <text x="40" y="28" font-size="24" font-weight="bold" fill="#0f172a">CataBox v1 — wiring diagram</text>
+  <text x="40" y="52" class="sub">ESP32 devkit · PN532 (I2C) · MAX98357A (I2S) · microSD (SPI) · 2 buttons</text>
+
+  <!-- 1. POWER -->
+  <rect class="panel" x="40" y="40" width="640" height="580"/>
+  <text x="70" y="80" class="title">1. Power and safety</text>
+
+  <rect class="box" x="70" y="105" width="220" height="56"/>
+  <text x="86" y="130" class="pin" font-weight="bold">5 V 2 A USB supply</text>
+  <text x="86" y="149" class="sub">barrel/USB, common ground</text>
+
+  <path class="wire p5v" d="M290 133 H340 V205 H400"/>
+  <path class="wire p5v" d="M340 205 V275 H400"/>
+  <circle class="dot" cx="340" cy="205" r="4"/>
+
+  <rect class="box" x="400" y="180" width="250" height="52"/>
+  <text x="416" y="202" class="pin">ESP32 VIN / 5 V</text>
+  <text x="416" y="220" class="sub">devkit regulator input</text>
+
+  <rect class="box" x="400" y="250" width="250" height="52"/>
+  <text x="416" y="272" class="pin">MAX98357A VIN</text>
+  <text x="416" y="290" class="sub">amp runs best at 5 V</text>
+
+  <rect class="box" x="70" y="330" width="220" height="56"/>
+  <text x="86" y="355" class="pin" font-weight="bold">ESP32 3V3 output</text>
+  <text x="86" y="374" class="sub">feeds the two 3.3 V modules</text>
+
+  <path class="wire p33" d="M290 358 H340 V420 H400"/>
+  <path class="wire p33" d="M340 420 V480 H400"/>
+  <circle class="dot" cx="340" cy="420" r="4"/>
+
+  <rect class="box" x="400" y="395" width="250" height="52"/>
+  <text x="416" y="417" class="pin">PN532 VCC — 3.3 V only</text>
+  <text x="416" y="435" class="sub">never 5 V on this module</text>
+
+  <rect class="box" x="400" y="455" width="250" height="52"/>
+  <text x="416" y="477" class="pin">microSD module VCC — 3.3 V</text>
+  <text x="416" y="495" class="sub">unless the board has its own regulator</text>
+
+  <rect x="70" y="545" width="580" height="56" fill="#fff7ed" stroke="#fdba74" rx="10"/>
+  <text x="86" y="566" class="note" font-weight="bold">Common GND:</text>
+  <text x="86" y="586" class="note">ESP32, PN532, MAX98357A, SD module and both buttons. 470 µF across amp VIN/GND.</text>
+
+  <!-- 2. AUDIO -->
+  <rect class="panel" x="720" y="40" width="680" height="290"/>
+  <text x="750" y="80" class="title">2. Audio — MAX98357A + speaker</text>
+
+  <rect class="box" x="750" y="105" width="190" height="170"/>
+  <text x="766" y="130" class="pin" font-weight="bold">ESP32</text>
+  <text x="766" y="150" class="sub">I2S</text>
+  <text x="930" y="160" class="pin" text-anchor="end">GPIO 27 — BCLK</text>
+  <text x="930" y="200" class="pin" text-anchor="end">GPIO 26 — LRC</text>
+  <text x="930" y="240" class="pin" text-anchor="end">GPIO 25 — DIN</text>
+
+  <rect class="box" x="1080" y="105" width="210" height="170"/>
+  <text x="1096" y="130" class="pin" font-weight="bold">MAX98357A</text>
+  <text x="1096" y="150" class="sub">I2S DAC + 3 W amp</text>
+  <text x="1096" y="160" class="pin">BCLK</text>
+  <text x="1096" y="200" class="pin">LRC</text>
+  <text x="1096" y="240" class="pin">DIN</text>
+
+  <path class="wire i2s" d="M930 155 H1080"/>
+  <path class="wire i2s" d="M930 195 H1080"/>
+  <path class="wire i2s" d="M930 235 H1080"/>
+  <text x="975" y="148" class="wirelabel">BCLK</text>
+  <text x="975" y="188" class="wirelabel">LRC</text>
+  <text x="975" y="228" class="wirelabel">DIN</text>
+
+  <text x="1015" y="322" class="note">VIN → 5 V · GND → common</text>
+
+  <rect class="box" x="1300" y="130" width="70" height="120"/>
+  <text x="1335" y="175" class="pin" text-anchor="middle">SPK</text>
+  <text x="1335" y="195" class="sub" text-anchor="middle">4–8 Ω</text>
+  <path class="wire i2s" d="M1290 160 H1300"/>
+  <path class="wire i2s" d="M1290 220 H1300"/>
+  <text x="1205" y="155" class="wirelabel">V+</text>
+  <text x="1205" y="215" class="wirelabel">V−</text>
+
+  <!-- 3. NFC -->
+  <rect class="panel" x="720" y="360" width="680" height="260"/>
+  <text x="750" y="400" class="title">3. NFC — PN532 on I2C</text>
+
+  <rect class="box" x="750" y="425" width="190" height="160"/>
+  <text x="766" y="450" class="pin" font-weight="bold">ESP32</text>
+  <text x="930" y="470" class="pin" text-anchor="end">GPIO 21 — SDA</text>
+  <text x="930" y="510" class="pin" text-anchor="end">GPIO 22 — SCL</text>
+  <text x="930" y="550" class="pin" text-anchor="end">3V3</text>
+  <text x="930" y="580" class="pin" text-anchor="end">GND</text>
+
+  <rect class="box" x="1080" y="425" width="240" height="160"/>
+  <text x="1096" y="450" class="pin" font-weight="bold">PN532</text>
+  <text x="1096" y="470" class="pin">SDA</text>
+  <text x="1096" y="510" class="pin">SCL</text>
+  <text x="1096" y="550" class="pin">VCC</text>
+  <text x="1096" y="580" class="pin">GND</text>
+
+  <path class="wire i2c" d="M930 465 H1080"/>
+  <path class="wire i2c" d="M930 505 H1080"/>
+  <path class="wire p33" d="M930 545 H1080"/>
+  <path class="wire gnd" d="M930 575 H1080"/>
+  <text x="975" y="458" class="wirelabel">SDA</text>
+  <text x="975" y="498" class="wirelabel">SCL</text>
+  <text x="975" y="538" class="wirelabel">3.3 V</text>
+  <text x="975" y="568" class="wirelabel">GND</text>
+
+  <text x="750" y="605" class="note">Set the red PN532 board's DIP switches to I2C before powering up.</text>
+
+  <!-- 4. SD -->
+  <rect class="panel" x="720" y="650" width="680" height="300"/>
+  <text x="750" y="690" class="title">4. microSD — SPI</text>
+
+  <rect class="box" x="750" y="710" width="190" height="210"/>
+  <text x="766" y="735" class="pin" font-weight="bold">ESP32</text>
+  <text x="930" y="755" class="pin" text-anchor="end">GPIO 5 — CS</text>
+  <text x="930" y="790" class="pin" text-anchor="end">GPIO 18 — SCK</text>
+  <text x="930" y="825" class="pin" text-anchor="end">GPIO 19 — MISO</text>
+  <text x="930" y="860" class="pin" text-anchor="end">GPIO 23 — MOSI</text>
+  <text x="930" y="895" class="pin" text-anchor="end">3V3 · GND</text>
+
+  <rect class="box" x="1080" y="710" width="240" height="210"/>
+  <text x="1096" y="735" class="pin" font-weight="bold">microSD module</text>
+  <text x="1096" y="755" class="pin">CS</text>
+  <text x="1096" y="790" class="pin">SCK</text>
+  <text x="1096" y="825" class="pin">MISO</text>
+  <text x="1096" y="860" class="pin">MOSI</text>
+  <text x="1096" y="895" class="pin">VCC · GND</text>
+
+  <path class="wire spi" d="M930 750 H1080"/>
+  <path class="wire spi" d="M930 785 H1080"/>
+  <path class="wire spi" d="M930 820 H1080"/>
+  <path class="wire spi" d="M930 855 H1080"/>
+  <path class="wire p33" d="M930 890 H1080"/>
+  <text x="975" y="743" class="wirelabel">CS</text>
+  <text x="975" y="778" class="wirelabel">SCK</text>
+  <text x="975" y="813" class="wirelabel">MISO</text>
+  <text x="975" y="848" class="wirelabel">MOSI</text>
+  <text x="975" y="883" class="wirelabel">3.3 V / GND</text>
+
+  <text x="750" y="940" class="note">FAT32, Class 10 card. Stories live in /stories/&lt;UID&gt;.mp3.</text>
+
+  <!-- 5. BUTTONS -->
+  <rect class="panel" x="40" y="650" width="640" height="300"/>
+  <text x="70" y="690" class="title">5. Buttons</text>
+
+  <rect class="box" x="70" y="710" width="190" height="210"/>
+  <text x="86" y="735" class="pin" font-weight="bold">ESP32</text>
+  <text x="250" y="755" class="pin" text-anchor="end">GPIO 32 — PAUSE</text>
+  <text x="250" y="815" class="pin" text-anchor="end">GPIO 33 — RESTART</text>
+  <text x="250" y="890" class="pin" text-anchor="end">GND</text>
+
+  <rect class="box" x="380" y="730" width="170" height="50"/>
+  <text x="465" y="760" class="pin" text-anchor="middle">Pause button</text>
+
+  <rect class="box" x="380" y="790" width="170" height="50"/>
+  <text x="465" y="820" class="pin" text-anchor="middle">Restart button</text>
+
+  <path class="wire btn" d="M250 750 H380"/>
+  <path class="wire btn" d="M550 755 H610 V750"/>
+  <path class="wire btn" d="M250 810 H380"/>
+  <path class="wire btn" d="M550 815 H610 V810"/>
+  <path class="wire gnd" d="M250 885 H610"/>
+  <path class="wire gnd" d="M610 750 V885"/>
+  <circle class="dot" cx="610" cy="755" r="4"/>
+  <circle class="dot" cx="610" cy="815" r="4"/>
+
+  <text x="70" y="945" class="note">Buttons short the GPIO to GND; the firmware enables internal pull-ups.</text>
+</svg>
