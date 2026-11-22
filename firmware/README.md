@@ -54,6 +54,7 @@ hide the reader:
 | `diag_audio` | SD mount, MP3 decode, I2S amp, speaker | SD + amp + speaker |
 | `diag_audio_quiet` | same, at 0.1 gain for a tiny/low-power speaker | SD + amp + speaker |
 | `diag_tone` | 440 Hz beeps on GPIO25 through a series resistor | speaker only |
+| `diag_e2e` | real NFC + buttons + state machine; a tone stands in for the MP3 | NFC + speaker |
 
 ```bash
 pio run -e diag_i2c -t upload && pio device monitor -b 115200
@@ -62,7 +63,11 @@ pio run -e diag_sd -t upload && pio device monitor -b 115200
 pio run -e diag_audio -t upload && pio device monitor -b 115200
 pio run -e diag_audio_quiet -t upload && pio device monitor -b 115200
 pio run -e diag_tone -t upload && pio device monitor -b 115200
+pio run -e diag_e2e -t upload && pio device monitor -b 115200
 ```
+
+`diag_e2e` runs the real tag/pause/restart state machine but beeps on GPIO25
+instead of opening an MP3, so it needs neither the SD card nor the amplifier.
 
 `diag_audio` plays `/stories/diag.mp3` if present, otherwise the first `.mp3` in
 `/stories`. The normal build now also prints `UID (no SD): ...` while the card is

@@ -14,3 +14,6 @@ void diagAudioLoop();
 
 void diagToneBegin();
 void diagToneLoop();
+
+void diagE2eBegin();
+void diagE2eLoop();
