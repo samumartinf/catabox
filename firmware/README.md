@@ -22,6 +22,22 @@ No WiFi, no web UI, no app. Stories are MP3s on the microSD card.
 
 Pin map and power notes are in the [wiring diagram](../docs/wiring/catabox-wiring.svg).
 
+### MAX98357A wiring
+
+| MAX98357A | Connect to |
+|---|---|
+| VIN | 5 V (2.5–5.5 V) |
+| GND | common ground |
+| LRC | GPIO 26 |
+| BCLK | GPIO 27 |
+| DIN | GPIO 25 |
+| GAIN | leave open = 9 dB; 100 kΩ to VIN = 3 dB; direct to VIN = 6 dB |
+| SD | tie to VIN to enable (left channel), or leave open if the board has its own pull-up |
+| + / − | speaker terminals; never connect either to GND |
+
+Add 470 µF across VIN/GND near the amp. The output is bridge-tied, so the
+speaker floats across the two output terminals.
+
 ## Build and flash
 
 PlatformIO with the Arduino framework:
