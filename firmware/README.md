@@ -52,12 +52,14 @@ hide the reader:
 | `diag_nfc` | PN532 init, firmware version, every UID tapped | PN532 only |
 | `diag_sd` | mount speed, card type/size, `/stories` listing | SD module + card |
 | `diag_audio` | SD mount, MP3 decode, I2S amp, speaker | SD + amp + speaker |
+| `diag_audio_quiet` | same, at 0.1 gain for a tiny/low-power speaker | SD + amp + speaker |
 
 ```bash
 pio run -e diag_i2c -t upload && pio device monitor -b 115200
 pio run -e diag_nfc -t upload && pio device monitor -b 115200
 pio run -e diag_sd -t upload && pio device monitor -b 115200
 pio run -e diag_audio -t upload && pio device monitor -b 115200
+pio run -e diag_audio_quiet -t upload && pio device monitor -b 115200
 ```
 
 `diag_audio` plays `/stories/diag.mp3` if present, otherwise the first `.mp3` in
