@@ -188,6 +188,7 @@ the same way, so the box does not retry in a loop; press restart to retry it fro
 | Tag never reads | Tag is NTAG213/215, within a few mm of the coil; try without the printed base |
 | No sound | MAX98357A VIN on 5 V, BCLK 27 / LRC 26 / DIN 25, speaker on amp output |
 | Sound stutters | use a Class 10 card, 128 kbps CBR MP3, shorter cables |
+| Garbled/noisy audio | solid I2S wires and common GND, 470 µF near amp, check GAIN/SD pins; hand-held jumper wires will not work reliably |
 | Wrong/no story | filename must match the UID exactly, uppercase, `.mp3` |
 | `audio open failed` | file is empty, not really an MP3, or unreadable; re-encode it |
 | Pauses by itself | NFC dropouts through thick PLA or magnets; move the tag closer to the reader |
