@@ -15,6 +15,7 @@ on the SD card.
 - [Firmware README](firmware/README.md) — build, flash, SD layout, tag workflow
 - [Wiring diagram](docs/wiring/catabox-wiring.svg)
 - [Assembly guide](docs/ASSEMBLY.md) — soldering and perfboard plan
+- [CAD & 3D print plan](docs/CAD.md) — Bambu Lab enclosure plan
 - [v1 design](docs/superpowers/specs/2026-11-15-catabox-v1-firmware-design.md)
 
 ## Repo layout
