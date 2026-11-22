@@ -13,12 +13,13 @@ Living doc — update as we go. **Deadline: ready before the Christmas break.**
 - [x] Core state machine: tag → play, lift → pause/save, return → resume
 - [x] Pause button (sticky) and restart button (tag required)
 - [x] Per-figurine bookmarks in NVS, cleared at story end
-- [x] 30 host tests with `pio test -e native`
+- [x] 31 host tests with `pio test -e native`
 - [x] PN532 (I2C), microSD/MP3, MAX98357A adapters
 - [x] Wiring diagram and firmware README
 - [ ] Flash and verify on real hardware → Phase 2
 
 ## Phase 2 — Hardware bring-up (breadboard)
+- [ ] Use `diag_nfc`, `diag_sd`, `diag_audio` to prove each subsystem independently
 - [ ] Flash `pio run -e esp32dev -t upload`, confirm serial boot
 - [ ] SD mounts; `/stories` visible
 - [ ] Place tag, read UID in serial

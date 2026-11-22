@@ -216,7 +216,7 @@ interfaces so the transition logic can be host-tested without a board.
 
 | Failure | Behaviour |
 |---|---|
-| SD mount fails | serial message + slow LED blink; retry every 5 s |
+| SD mount fails | try 4 MHz, 1 MHz, 400 kHz; serial message + slow LED blink; retry every 5 s |
 | Tag read fails / no tag | treated as absent; no error spam |
 | MP3 missing | serial + 3 blinks; `failedUID` until tag replaced or restart |
 | MP3 empty / not an MP3 | rejected at open, same `failedUID` path |

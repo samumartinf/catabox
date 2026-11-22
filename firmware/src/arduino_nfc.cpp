@@ -20,3 +20,7 @@ bool ArduinoNfc::readUid(char out[15]) {
     }
     return catabox::formatUid(uid, length, out);
 }
+
+uint32_t ArduinoNfc::firmwareVersion() {
+    return nfc_.getFirmwareVersion();
+}

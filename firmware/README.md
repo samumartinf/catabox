@@ -41,6 +41,32 @@ On this Mac, if `pio` reports a missing `tool-scons` package for
 /Users/samu/.venvs/platformio/bin/pio run -e esp32dev
 ```
 
+## Diagnostics
+
+Bring-up builds that test one subsystem at a time, so a broken SD card does not
+hide the reader:
+
+| Env | Tests | Needs |
+|---|---|---|
+| `diag_i2c` | scans the bus; PN532 should appear at `0x24` | PN532 only |
+| `diag_nfc` | PN532 init, firmware version, every UID tapped | PN532 only |
+| `diag_sd` | mount speed, card type/size, `/stories` listing | SD module + card |
+| `diag_audio` | SD mount, MP3 decode, I2S amp, speaker | SD + amp + speaker |
+
+```bash
+pio run -e diag_i2c -t upload && pio device monitor -b 115200
+pio run -e diag_nfc -t upload && pio device monitor -b 115200
+pio run -e diag_sd -t upload && pio device monitor -b 115200
+pio run -e diag_audio -t upload && pio device monitor -b 115200
+```
+
+`diag_audio` plays `/stories/diag.mp3` if present, otherwise the first `.mp3` in
+`/stories`. The normal build now also prints `UID (no SD): ...` while the card is
+missing, then starts the app once it mounts.
+
+SD mounting tries 4 MHz, 1 MHz and 400 kHz; the serial log prints the speed that
+worked.
+
 ## Host tests
 
 The state machine and helpers are tested without hardware:
@@ -49,7 +75,7 @@ The state machine and helpers are tested without hardware:
 pio test -e native
 ```
 
-30 tests cover UID formatting, path building, resume rules, MP3/end
+31 tests cover UID formatting, path building, resume rules, MP3/end
 classification, pause/lift/resume, button behaviour, tag swaps, restart after
 finish/error, and finish/error latches.
 
@@ -116,7 +142,7 @@ the same way, so the box does not retry in a loop; press restart to retry it fro
 
 | Symptom | Check |
 |---|---|
-| `SD mount failed` | FAT32, card seated, module on 3.3 V, CS on GPIO 5 |
+| `SD mount failed` | FAT32, card seated, CS on GPIO 5, module power (5 V if it has a regulator) |
 | `PN532 init failed` | DIP switches on I2C, SDA 21 / SCL 22, 3.3 V, common ground |
 | Tag never reads | Tag is NTAG213/215, within a few mm of the coil; try without the printed base |
 | No sound | MAX98357A VIN on 5 V, BCLK 27 / LRC 26 / DIN 25, speaker on amp output |

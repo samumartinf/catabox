@@ -1,8 +1,5 @@
 #include <Arduino.h>
 #include <AudioLogger.h>
-#include <SD.h>
-#include <SPI.h>
-#include <Wire.h>
 
 #include <cstring>
 
@@ -11,16 +8,14 @@
 #include "arduino_controls.h"
 #include "arduino_nfc.h"
 #include "arduino_player.h"
+#include "arduino_sd.h"
 #include "config.h"
+#include "diagnostics.h"
 
 namespace {
 constexpr uint8_t kLedPin = 2;
 constexpr uint8_t kPausePin = 32;
 constexpr uint8_t kRestartPin = 33;
-constexpr uint8_t kSdCsPin = 5;
-constexpr uint8_t kSdSckPin = 18;
-constexpr uint8_t kSdMisoPin = 19;
-constexpr uint8_t kSdMosiPin = 23;
 
 ArduinoPlayer player;
 ArduinoBookmarks bookmarks;
@@ -32,6 +27,7 @@ bool sdReady = false;
 uint32_t bootMs = 0;
 uint32_t lastPollMs = 0;
 uint32_t lastSdTryMs = 0;
+uint32_t lastNoSdPollMs = 0;
 uint32_t blinkUntilMs = 0;
 char lastPrintedUid[15] = {};
 
@@ -51,6 +47,11 @@ void updateLed(uint32_t now) {
     }
     digitalWrite(kLedPin, on ? HIGH : LOW);
 }
+
+void rememberPrintedUid(const char* uid) {
+    std::strncpy(lastPrintedUid, uid, sizeof(lastPrintedUid) - 1);
+    lastPrintedUid[sizeof(lastPrintedUid) - 1] = '\0';
+}
 }
 
 void setup() {
@@ -61,10 +62,22 @@ void setup() {
     audioLogger = &Serial;
 
     pinMode(kLedPin, OUTPUT);
-    SPI.begin(kSdSckPin, kSdMisoPin, kSdMosiPin, kSdCsPin);
 
-    sdReady = SD.begin(kSdCsPin, SPI, 4000000);
-    Serial.println(sdReady ? "SD mounted" : "SD mount failed");
+#if defined(CATABOX_DIAG_NFC)
+    diagNfcBegin();
+    return;
+#elif defined(CATABOX_DIAG_I2C)
+    diagI2cBegin();
+    return;
+#elif defined(CATABOX_DIAG_SD)
+    diagSdBegin();
+    return;
+#elif defined(CATABOX_DIAG_AUDIO)
+    diagAudioBegin();
+    return;
+#endif
+
+    sdReady = mountSd();
 
     if (!nfc.begin()) {
         Serial.println("PN532 init failed");
@@ -79,12 +92,44 @@ void setup() {
 void loop() {
     const uint32_t now = millis();
 
+#if defined(CATABOX_DIAG_NFC)
+    diagNfcLoop();
+    delay(1);
+    return;
+#elif defined(CATABOX_DIAG_I2C)
+    diagI2cLoop();
+    delay(100);
+    return;
+#elif defined(CATABOX_DIAG_SD)
+    diagSdLoop();
+    delay(5);
+    return;
+#elif defined(CATABOX_DIAG_AUDIO)
+    diagAudioLoop();
+    delay(1);
+    return;
+#endif
+
     if (!sdReady) {
         if (now - lastSdTryMs >= 5000) {
             lastSdTryMs = now;
-            sdReady = SD.begin(kSdCsPin, SPI, 4000000);
-            Serial.println(sdReady ? "SD mounted" : "SD mount failed");
+            sdReady = mountSd();
         }
+
+        // Keep the reader testable while the card is broken.
+        if (now - lastNoSdPollMs >= 500) {
+            lastNoSdPollMs = now;
+            char uid[15];
+            if (nfc.readUid(uid)) {
+                if (std::strcmp(uid, lastPrintedUid) != 0) {
+                    Serial.printf("UID (no SD): %s\n", uid);
+                    rememberPrintedUid(uid);
+                }
+            } else {
+                lastPrintedUid[0] = '\0';
+            }
+        }
+
         updateLed(now);
         delay(5);
         return;
@@ -105,11 +150,11 @@ void loop() {
         if (nfc.readUid(uid)) {
             if (std::strcmp(uid, lastPrintedUid) != 0) {
                 Serial.printf("UID: %s\n", uid);
-                std::strncpy(lastPrintedUid, uid, sizeof(lastPrintedUid) - 1);
-                lastPrintedUid[sizeof(lastPrintedUid) - 1] = '\0';
+                rememberPrintedUid(uid);
             }
             app.onScan(uid, now);
         } else {
+            lastPrintedUid[0] = '\0';
             app.onScan(nullptr, now);
         }
     }

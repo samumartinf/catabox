@@ -91,7 +91,7 @@ See [inventory.md](inventory.md). **~£40–55 total.**
 
 1. **Phase 0 — Spec, inventory, orders** ← inventory still open
 2. **Phase 1 — Firmware written** ✅ core, buttons, bookmarks, wiring diagram, host tests
-3. **Phase 2 — Hardware bring-up:** flash, verify SD + NFC + audio, first tag→story
+3. **Phase 2 — Hardware bring-up:** use `diag_nfc` / `diag_sd` / `diag_audio` to verify each part, then flash the full app and get the first tag→story
 4. **Phase 3 — Enclosure & figurines:** case, 2–3 characters with tags/magnets
 5. **Phase 4 — Assembly & content:** solder, load stories, parent instructions
 6. **Phase 5 — Ship 🎁** (before Christmas break)

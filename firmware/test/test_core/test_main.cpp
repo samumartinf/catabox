@@ -74,6 +74,15 @@ void test_reached_end_classification() {
     TEST_ASSERT_TRUE(catabox::reachedEnd(100000, 100000, true));
 }
 
+void test_mp3_extension() {
+    TEST_ASSERT_TRUE(catabox::hasMp3Extension("story.mp3"));
+    TEST_ASSERT_TRUE(catabox::hasMp3Extension("STORY.MP3"));
+    TEST_ASSERT_FALSE(catabox::hasMp3Extension("story.wav"));
+    TEST_ASSERT_FALSE(catabox::hasMp3Extension("mp3"));
+    TEST_ASSERT_FALSE(catabox::hasMp3Extension("story.mp3x"));
+    TEST_ASSERT_FALSE(catabox::hasMp3Extension(nullptr));
+}
+
 class FakePlayer : public catabox::IPlayer {
 public:
     std::string lastPath;
@@ -416,6 +425,7 @@ int main(int, char**) {
     RUN_TEST(test_resume_position_boundaries_and_overflow);
     RUN_TEST(test_mp3_signatures);
     RUN_TEST(test_reached_end_classification);
+    RUN_TEST(test_mp3_extension);
     RUN_TEST(test_tag_plays_story_from_start);
     RUN_TEST(test_repeated_scans_do_not_restart);
     RUN_TEST(test_short_dropout_is_ignored);
