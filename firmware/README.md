@@ -67,6 +67,22 @@ missing, then starts the app once it mounts.
 SD mounting tries 4 MHz, 1 MHz and 400 kHz; the serial log prints the speed that
 worked.
 
+### No card reader? Use the box as the card writer
+
+`diag_sd` accepts commands over USB serial and `tools/sdcard.py` drives them.
+Close any open serial monitor first.
+
+```bash
+~/.venvs/platformio/bin/pio run -e diag_sd -t upload
+~/.venvs/platformio/bin/python tools/sdcard.py format
+~/.venvs/platformio/bin/python tools/sdcard.py upload story.mp3 6062BD5C.mp3
+~/.venvs/platformio/bin/python tools/sdcard.py list
+```
+
+`format` only formats when the card has no filesystem (a blank or exFAT card).
+Upload speed is ~11 KB/s at 115200 baud, so a 1 MB story takes about 90 seconds.
+Afterwards flash `diag_audio` or the normal build as usual.
+
 ## Host tests
 
 The state machine and helpers are tested without hardware:

@@ -43,14 +43,29 @@ When the SD card is not mounted, the normal build still:
 It still does not start the app until the SD card mounts. This lets the reader
 be verified while the card problem is being fixed.
 
-## 4. SD mount fallback
+## 4. Serial card writer
+
+`diag_sd` also turns the box into a card writer, so bring-up does not need a
+separate card reader:
+
+- `l` lists `/stories`;
+- `f` mounts with `format_if_empty = true` (formats a blank/exFAT card), then
+  creates `/stories`;
+- `u <name> <bytes>` waits for `READY`, receives exactly `<bytes>` of binary
+  data over serial, writes `/stories/<name>`, and replies `OK <written> <sum>`.
+
+`tools/sdcard.py` wraps those commands (`list`, `format`, `upload`). Speed at
+115200 baud is about 11 KB/s; the script prints progress. The protocol is
+diagnostic-only and is not compiled into the normal firmware.
+
+## 5. SD mount fallback
 
 `mountSd()` tries 4 MHz, then 1 MHz, then 400 kHz, calling `SD.end()` between
 attempts, and prints the speed that worked. Marginal breadboard wiring often
 fails at 4 MHz and works at 1 MHz or lower. The production app and all
 diagnostics use it.
 
-## 5. Code structure
+## 6. Code structure
 
 ```
 firmware/src/
@@ -58,7 +73,7 @@ firmware/src/
   diagnostics.h          # diagNfcBegin/Loop, diagSdBegin/Loop, diagAudioBegin/Loop
   diag_i2c.cpp           # compiled only with -DCATABOX_DIAG_I2C
   diag_nfc.cpp           # compiled only with -DCATABOX_DIAG_NFC
-  diag_sd.cpp            # compiled only with -DCATABOX_DIAG_SD
+  diag_sd.cpp            # compiled only with -DCATABOX_DIAG_SD; also serial uploader
   diag_audio.cpp         # compiled only with -DCATABOX_DIAG_AUDIO
   main.cpp               # dispatch on the compile flag; normal path otherwise
 ```
@@ -67,16 +82,16 @@ firmware/src/
 `/stories`, and prints position once a second. `media::hasMp3Extension()` is
 host-tested.
 
-## 6. Non-goals
+## 7. Non-goals
 
 - No serial command shell in the normal build.
 - No changes to the tag state machine, bookmarks, or buttons.
 - No new hardware.
 
-## 7. Acceptance
+## 8. Acceptance
 
 1. `diag_i2c` reports `0x24`; `diag_nfc` prints `PN532 ready` and UIDs with no SD card present.
-2. `diag_sd` prints mount speed, card type/size, and each file in `/stories`.
+2. `diag_sd` prints mount speed, card type/size, and each file in `/stories`; `f` formats a blank/exFAT card; `u` accepts a file over serial.
 3. `diag_audio` plays a test MP3 and prints position/end/error.
 4. Normal build prints UIDs while the SD card is missing, then starts the app
    once the card mounts.
