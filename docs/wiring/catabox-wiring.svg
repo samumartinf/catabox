@@ -57,12 +57,12 @@
   <text x="416" y="435" class="sub">never 5 V on this module</text>
 
   <rect class="box" x="400" y="455" width="250" height="52"/>
-  <text x="416" y="477" class="pin">microSD module VCC — 3.3 V</text>
-  <text x="416" y="495" class="sub">unless the board has its own regulator</text>
+  <text x="416" y="477" class="pin">microSD VCC — 3.3 V bare</text>
+  <text x="416" y="495" class="sub">5 V if it has a regulator</text>
 
   <rect x="70" y="545" width="580" height="56" fill="#fff7ed" stroke="#fdba74" rx="10"/>
-  <text x="86" y="566" class="note" font-weight="bold">Common GND:</text>
-  <text x="86" y="586" class="note">ESP32, PN532, MAX98357A, SD module and both buttons. 470 µF across amp VIN/GND.</text>
+  <text x="86" y="566" class="note" font-weight="bold">Common GND / 5 V:</text>
+  <text x="86" y="586" class="note">ESP32, PN532, MAX98357A, SD module and both buttons. 470 µF across amp VIN/GND. SD VCC goes to 5 V when the module has a regulator.</text>
 
   <!-- 2. AUDIO -->
   <rect class="panel" x="720" y="40" width="680" height="290"/>

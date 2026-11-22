@@ -158,7 +158,7 @@ the same way, so the box does not retry in a loop; press restart to retry it fro
 
 | Symptom | Check |
 |---|---|
-| `SD mount failed` | FAT32, card seated, CS on GPIO 5, module power (5 V if it has a regulator) |
+| `SD mount failed` | FAT32, card seated, CS on GPIO 5, module power (5 V if it has a regulator; the devkit 5V/VIN pin is USB 5 V) |
 | `PN532 init failed` | DIP switches on I2C, SDA 21 / SCL 22, 3.3 V, common ground |
 | Tag never reads | Tag is NTAG213/215, within a few mm of the coil; try without the printed base |
 | No sound | MAX98357A VIN on 5 V, BCLK 27 / LRC 26 / DIN 25, speaker on amp output |

@@ -88,7 +88,9 @@ void uploadFile(const char* args) {
 
     char path[96] = {};
     std::snprintf(path, sizeof(path), "/stories/%s", name);
-    SD.remove(path);
+    if (SD.exists(path)) {
+        SD.remove(path);
+    }
 
     File file = SD.open(path, FILE_WRITE);
     if (!file) {
