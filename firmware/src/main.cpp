@@ -75,6 +75,9 @@ void setup() {
 #elif defined(CATABOX_DIAG_AUDIO)
     diagAudioBegin();
     return;
+#elif defined(CATABOX_DIAG_TONE)
+    diagToneBegin();
+    return;
 #endif
 
     sdReady = mountSd();
@@ -106,6 +109,10 @@ void loop() {
     return;
 #elif defined(CATABOX_DIAG_AUDIO)
     diagAudioLoop();
+    delay(1);
+    return;
+#elif defined(CATABOX_DIAG_TONE)
+    diagToneLoop();
     delay(1);
     return;
 #endif

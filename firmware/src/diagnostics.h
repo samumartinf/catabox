@@ -11,3 +11,6 @@ void diagSdLoop();
 
 void diagAudioBegin();
 void diagAudioLoop();
+
+void diagToneBegin();
+void diagToneLoop();
