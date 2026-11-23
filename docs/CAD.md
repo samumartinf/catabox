@@ -2,6 +2,9 @@
 
 Status: draft. Dimensions below are placeholders until the electronics are measured.
 
+Printer: **Bambu Lab A1** — 256 × 256 × 256 mm build volume. Keep every part
+under ~250 mm per axis so it fits with a brim; split the shell if needed.
+
 ## Modular design
 
 Print the box as parts, not one monolith:
@@ -23,13 +26,14 @@ Print the box as parts, not one monolith:
 | PN532 | board size, coil/antenna area, connector height |
 | SD module | board size, card protrusion, connector height |
 | MAX98357A | board size, header/screw-terminal height |
-| Speaker | outer frame, depth, mounting-hole spacing, screw size |
+| Speaker | outer frame, depth, mounting-hole spacing (centre-to-centre), screw size |
 | Arcade buttons | hole diameter, panel thickness range, nut/thread depth |
 | Magnets | 10 mm diameter × 3 mm (confirm) |
 | NFC sticker | antenna diameter (~39 mm clear area) |
 | USB cable | connector overmold size for the cutout |
 
-Add 2–3 mm clearance around each board and 4–6 mm around connectors.
+Add 2–3 mm clearance around each board and 4–6 mm around connectors. Use
+calipers, not a ruler, for the speaker mounting holes and button nut depth.
 
 ## Bambu print settings (starting point)
 
